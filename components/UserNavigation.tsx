@@ -27,7 +27,10 @@ export async function UserNavigation() {
             </form>
           </>
         ) : (
-          <Link href="/login" className="btn">Sign in</Link>
+          <span className="flex items-center gap-2">
+            <Link href="/login" className="btn-ghost">Sign in</Link>
+            <Link href="/signup" className="btn">Sign up</Link>
+          </span>
         )}
       </span>
     </>

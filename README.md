@@ -8,6 +8,7 @@ CampusShare is a campus resource booking platform. Students can discover shared 
 
 - Browse and search active campus resources by category.
 - Request bookings with a purpose, reason, and duration. Custom durations can be entered in 15-minute increments, within each resource's limit.
+- Create a student account with email confirmation, or recover access with a password reset link.
 - View and manage your bookings.
 - Let resource owners create and update listings, set maximum booking durations, and approve, waitlist, or decline requests.
 - Record condition reports during check-in and return.
@@ -41,6 +42,7 @@ In your Supabase project, find the Project URL and publishable key in **Project 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
+NEXT_PUBLIC_SITE_URL=http://localhost:3000
 ```
 
 Replace the example values with your project's values. Keep `.env.local` on your computer; it is ignored by Git. Do not put a Supabase secret or service-role key in a `NEXT_PUBLIC_` variable.
@@ -58,9 +60,26 @@ In the Supabase SQL Editor, run the SQL files in `supabase/migrations` in filena
 
 These migrations create the tables, access policies, and booking functions used by the app.
 
-### 4. Create an account and run locally
+### 4. Configure Supabase Auth
 
-Create a user in **Supabase → Authentication → Users**. New accounts get the `user` role by default. To manage resources, an administrator must assign the `owner` or `admin` role to the account's profile.
+In **Supabase → Authentication → URL Configuration**, set the Site URL to `https://campus-share-0uy5.onrender.com` and add these Redirect URLs:
+
+```text
+https://campus-share-0uy5.onrender.com/auth/callback
+https://campus-share-0uy5.onrender.com/auth/confirm
+http://localhost:3000/auth/callback
+http://localhost:3000/auth/confirm
+```
+
+Add your custom domain too if you use one. Keep `NEXT_PUBLIC_SITE_URL=http://localhost:3000` in local `.env.local`; set `NEXT_PUBLIC_SITE_URL=https://campus-share-0uy5.onrender.com` in Render's environment settings. If unset, the app validates and uses the current request origin.
+
+Email confirmation should remain enabled. Hosted Supabase's built-in email sender is for testing: it only delivers to project team addresses and is limited to 2 emails per hour. Configure a custom SMTP provider in **Supabase → Authentication → SMTP Settings** before opening sign-up to the public. Consider enabling CAPTCHA for Auth in Supabase as well. [Supabase email sending guidance](https://supabase.com/docs/guides/auth/auth-smtp)
+
+Newly registered accounts receive the `user` role automatically. To manage resources, an administrator must assign the `owner` or `admin` role to the account's profile.
+
+### 5. Create an account and run locally
+
+Open the app and choose **Sign up**. Users confirm their email before signing in when email confirmation is enabled. Password recovery is available from the sign-in page.
 
 Start the development server:
 

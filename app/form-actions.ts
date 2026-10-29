@@ -13,6 +13,41 @@ export async function signInAction(_: string | null, fd: FormData): Promise<stri
   if (!r.ok) return r.error.message;
   redirect("/dashboard"); // dashboard adapts to the role
 }
+export async function signUpAction(_: FormState, fd: FormData): Promise<FormState> {
+  const fullName = String(fd.get("fullName") ?? "").trim();
+  const email = String(fd.get("email") ?? "").trim();
+  const password = String(fd.get("password") ?? "");
+  const confirmPassword = String(fd.get("confirmPassword") ?? "");
+
+  if (password !== confirmPassword) {
+    return { ok: false, error: { code: "VALIDATION_ERROR", message: "The passwords don't match." } };
+  }
+
+  const result = await api.signUp({ fullName, email, password });
+  if (!result.ok) return { ok: false, error: result.error };
+  if (result.data.requiresEmailConfirmation) {
+    return done("Account request received. Check your email for a confirmation link before signing in.");
+  }
+
+  revalidatePath("/", "layout");
+  redirect("/dashboard");
+}
+export async function requestPasswordResetAction(_: FormState, fd: FormData): Promise<FormState> {
+  const result = await api.requestPasswordReset(String(fd.get("email") ?? ""));
+  if (!result.ok) return { ok: false, error: result.error };
+  return done("If an account uses this email, password reset instructions will be sent. Check your inbox and spam folder.");
+}
+export async function updatePasswordAction(_: FormState, fd: FormData): Promise<FormState> {
+  const password = String(fd.get("password") ?? "");
+  const confirmPassword = String(fd.get("confirmPassword") ?? "");
+  if (password !== confirmPassword) {
+    return { ok: false, error: { code: "VALIDATION_ERROR", message: "The passwords don't match." } };
+  }
+  const result = await api.updatePassword(password);
+  if (!result.ok) return { ok: false, error: result.error };
+  revalidatePath("/", "layout");
+  redirect("/dashboard");
+}
 export async function signOutAction() { await api.signOut(); redirect("/login"); }
 
 const iso = (v: FormDataEntryValue | null) => { const d = new Date(`${v}:00+05:30`); return isNaN(+d) ? "" : d.toISOString(); }; // form times are IST
