@@ -34,8 +34,8 @@ async function ResourceDetails({ params }: { params: Promise<{ id: string }> }) 
       <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
       <section className="card"><p className="eyebrow">BEFORE YOU BOOK</p><h2 className="mt-1 text-lg font-semibold">Usage rules & limits</h2>
         <p className="mt-1 text-sm">{r.usageRules ?? "No special rules."}</p>
-        <ul className="mt-2 list-disc pl-5 text-sm text-slate-600"><li>Max {r.maxBookingLengthHours}h per booking, {r.maxHoursPerUserPerWeek}h per week</li><li>Up to {r.maxActiveBookingsPerUser} active bookings</li>{r.requiresStaffPresent && <li>Staff must be present</li>}{r.depositAmount > 0 && <li>Deposit: ₹{r.depositAmount}</li>}{r.isHighDemand && <li>High demand: requests are reviewed by the owner</li>}</ul></section>
-      <div className="space-y-4">{user ? <><EligibilityChecklist result={elig} /><BookingForm resourceId={r.id} maxHours={r.maxBookingLengthHours} canBook={elig.eligible} /></> : <p className="card text-sm"><Link href="/login" className="text-indigo-700 underline">Sign in</Link> to check eligibility and request a booking.</p>}</div>
+        <ul className="mt-2 list-disc pl-5 text-sm text-slate-600">{r.requiresStaffPresent && <li>Staff must be present</li>}{r.isHighDemand && <li>High demand: requests are reviewed by the owner</li>}{user ? <><li>Max {r.maxBookingLengthHours}h per booking, {r.maxHoursPerUserPerWeek}h per week</li><li>Up to {r.maxActiveBookingsPerUser} active bookings</li>{r.depositAmount > 0 && <li>Deposit: ₹{r.depositAmount}</li>}</> : <li>Max {r.maxBookingLengthHours}h per booking</li>}</ul></section>
+      <div className="space-y-4">{user ? <><EligibilityChecklist result={elig} /><BookingForm resourceId={r.id} maxHours={r.maxBookingLengthHours} canBook={elig.eligible} /></> : <div className="card space-y-3 text-sm"><p>Sign in to check eligibility and request this resource.</p><Link href="/login" className="btn-ghost">Sign in</Link></div>}</div>
       </div>
     </div>);
 }

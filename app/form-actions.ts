@@ -14,23 +14,15 @@ export async function signInAction(_: string | null, fd: FormData): Promise<stri
   redirect("/dashboard"); // dashboard adapts to the role
 }
 export async function signUpAction(_: FormState, fd: FormData): Promise<FormState> {
-  const fullName = String(fd.get("fullName") ?? "").trim();
-  const email = String(fd.get("email") ?? "").trim();
-  const password = String(fd.get("password") ?? "");
-  const confirmPassword = String(fd.get("confirmPassword") ?? "");
-
-  if (password !== confirmPassword) {
-    return { ok: false, error: { code: "VALIDATION_ERROR", message: "The passwords don't match." } };
-  }
-
-  const result = await api.signUp({ fullName, email, password });
-  if (!result.ok) return { ok: false, error: result.error };
-  if (result.data.requiresEmailConfirmation) {
-    return done("Account request received. Check your email for a confirmation link before signing in.");
-  }
-
-  revalidatePath("/", "layout");
-  redirect("/dashboard");
+  void _;
+  void fd;
+  return {
+    ok: false,
+    error: {
+      code: "SIGNUP_DISABLED",
+      message: "New account registration is closed. Sign in using the User or Owner demo account.",
+    },
+  };
 }
 export async function requestPasswordResetAction(_: FormState, fd: FormData): Promise<FormState> {
   const result = await api.requestPasswordReset(String(fd.get("email") ?? ""));
