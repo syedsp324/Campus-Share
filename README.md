@@ -8,7 +8,7 @@ CampusShare is a campus resource booking platform. Students can discover shared 
 
 - Browse and search active campus resources by category.
 - Request bookings with a purpose, reason, and duration. Custom durations can be entered in 15-minute increments, within each resource's limit.
-- Create a student account with email confirmation, or recover access with a password reset link.
+- Sign in with the shared User or Owner demo account. New account registration is disabled.
 - View and manage your bookings.
 - Let resource owners create and update listings, set maximum booking durations, and approve, waitlist, or decline requests.
 - Record condition reports during check-in and return.
@@ -73,13 +73,15 @@ http://localhost:3000/auth/confirm
 
 Add your custom domain too if you use one. Keep `NEXT_PUBLIC_SITE_URL=http://localhost:3000` in local `.env.local`; set `NEXT_PUBLIC_SITE_URL=https://campus-share-0uy5.onrender.com` in Render's environment settings. If unset, the app validates and uses the current request origin.
 
-Email confirmation should remain enabled. Hosted Supabase's built-in email sender is for testing: it only delivers to project team addresses and is limited to 2 emails per hour. Configure a custom SMTP provider in **Supabase → Authentication → SMTP Settings** before opening sign-up to the public. Consider enabling CAPTCHA for Auth in Supabase as well. [Supabase email sending guidance](https://supabase.com/docs/guides/auth/auth-smtp)
+To make sign-in-only access effective for the Supabase project too, disable **Allow new users to sign up** under **Supabase → Authentication → General configuration**. Supabase then allows existing accounts to sign in but rejects new registrations. [Supabase Auth configuration](https://supabase.com/docs/guides/auth/general-configuration)
 
-Newly registered accounts receive the `user` role automatically. To manage resources, an administrator must assign the `owner` or `admin` role to the account's profile.
+Keep email confirmation enabled for existing accounts. Configure a custom SMTP provider in **Supabase → Authentication → SMTP Settings** if password-recovery emails need reliable delivery. [Supabase email sending guidance](https://supabase.com/docs/guides/auth/auth-smtp)
 
-### 5. Create an account and run locally
+Demo accounts are provisioned in advance. Owner and administrator roles are assigned by an authorized administrator.
 
-Open the app and choose **Sign up**. Users confirm their email before signing in when email confirmation is enabled. Password recovery is available from the sign-in page.
+### 5. Run locally and sign in
+
+Open the app and use the **User** or **Owner** tab on the sign-in page to fill the corresponding shared demo account. New account registration is disabled in CampusShare. Password recovery is available from the sign-in page.
 
 Start the development server:
 

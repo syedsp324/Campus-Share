@@ -13,17 +13,6 @@ export async function signInAction(_: string | null, fd: FormData): Promise<stri
   if (!r.ok) return r.error.message;
   redirect("/dashboard"); // dashboard adapts to the role
 }
-export async function signUpAction(_: FormState, fd: FormData): Promise<FormState> {
-  void _;
-  void fd;
-  return {
-    ok: false,
-    error: {
-      code: "SIGNUP_DISABLED",
-      message: "New account registration is closed. Sign in using the User or Owner demo account.",
-    },
-  };
-}
 export async function requestPasswordResetAction(_: FormState, fd: FormData): Promise<FormState> {
   const result = await api.requestPasswordReset(String(fd.get("email") ?? ""));
   if (!result.ok) return { ok: false, error: result.error };

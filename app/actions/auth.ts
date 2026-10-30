@@ -67,48 +67,6 @@ export async function signIn(input: {
   return { ok: true, data: { redirectTo: "/dashboard" } };
 }
 
-export async function signUp(input: {
-  fullName: string;
-  email: string;
-  password: string;
-}): Promise<ActionResult<{ requiresEmailConfirmation: boolean }>> {
-  const fullName = input.fullName.trim();
-  const email = input.email.trim().toLowerCase();
-  const emailRedirectTo = await getAuthCallbackUrl();
-
-  if (fullName.length < 2 || fullName.length > 80) {
-    return { ok: false, error: { code: "VALIDATION_ERROR", message: "Enter your name (2 to 80 characters)." } };
-  }
-  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { ok: false, error: { code: "VALIDATION_ERROR", message: "Enter a valid email address." } };
-  }
-  if (input.password.length < 8) {
-    return { ok: false, error: { code: "VALIDATION_ERROR", message: "Use a password with at least 8 characters." } };
-  }
-  if (!emailRedirectTo) {
-    return { ok: false, error: { code: "CONFIGURATION_ERROR", message: "Sign-up is temporarily unavailable. Please try again later." } };
-  }
-
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password: input.password,
-    options: {
-      emailRedirectTo,
-      data: { full_name: fullName },
-    },
-  });
-
-  if (error) {
-    const message = error.message.toLowerCase().includes("redirect")
-      ? "Email confirmation isn't configured for this site yet. Please contact the CampusShare team."
-      : "We couldn't create your account. Check your details, or sign in if you already have an account.";
-    return { ok: false, error: { code: "SIGNUP_FAILED", message } };
-  }
-
-  return { ok: true, data: { requiresEmailConfirmation: !data.session } };
-}
-
 export async function requestPasswordReset(emailInput: string): Promise<ActionResult<{ sent: true }>> {
   const email = emailInput.trim().toLowerCase();
   if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

@@ -12,8 +12,8 @@ const demoAccounts = {
 export default function Login() {
   const [err, action, pending] = useActionState(signInAction, null);
   const [accountType, setAccountType] = useState<keyof typeof demoAccounts>("user");
-  const [email, setEmail] = useState(demoAccounts.user.email);
-  const [password, setPassword] = useState(demoAccounts.user.password);
+  const [email, setEmail] = useState<string>(demoAccounts.user.email);
+  const [password, setPassword] = useState<string>(demoAccounts.user.password);
 
   function selectAccount(type: keyof typeof demoAccounts) {
     setAccountType(type);

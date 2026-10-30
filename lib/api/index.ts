@@ -20,7 +20,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 }
 
 export const signIn = auth.signIn;
-export const signUp = auth.signUp;
 export const requestPasswordReset = auth.requestPasswordReset;
 export const updatePassword = auth.updatePassword;
 export const signOut = auth.signOut;
