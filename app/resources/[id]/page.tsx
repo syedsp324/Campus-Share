@@ -4,11 +4,15 @@ import { getCurrentUser, getResource } from "@/lib/api";
 import { EligibilityChecklist } from "@/components/EligibilityChecklist";
 import { BookingForm } from "@/components/BookingForm";
 import { Suspense } from "react";
+import { io } from "next/cache";
 export default function ResourcePage({ params }: { params: Promise<{ id: string }> }) {
   return <Suspense fallback={<div className="loading-panel">Loading resource details…</div>}><ResourceDetails params={params} /></Suspense>;
 }
 
 async function ResourceDetails({ params }: { params: Promise<{ id: string }> }) {
+  // Supabase Auth may read the current time while initializing its server client.
+  // Keep request-specific data out of the prerendered shell.
+  await io();
   const { id } = await params;
   const r = await getResource(id); if (!r) notFound();
   const user = await getCurrentUser();
