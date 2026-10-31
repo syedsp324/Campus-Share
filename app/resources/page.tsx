@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { io } from "next/cache";
 import { listResourceResult } from "@/lib/api";
 import { ResourceCard } from "@/components/ResourceCard";
 import { EmptyState } from "@/components/Feedback";
@@ -10,6 +11,9 @@ export default function Resources({ searchParams }: { searchParams: Promise<{ q?
 }
 
 async function ResourceListing({ searchParams }: { searchParams: Promise<{ q?: string; category?: ResourceCategory }> }) {
+  // Supabase Auth may read the current time while initializing its server client.
+  // Keep that request-specific work outside the prerendered shell.
+  await io();
   const { q, category } = await searchParams;
   const result = await listResourceResult({ query: q, category: CATS.includes(category as ResourceCategory) ? category : undefined });
   const items = result.ok ? result.data : [];

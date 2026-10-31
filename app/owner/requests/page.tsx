@@ -17,8 +17,9 @@ export default async function OwnerRequests() {
     {!items.length ? <EmptyState title="All caught up" hint="No requests waiting for review." /> :
       <ul className="space-y-3">{items.map((b) => (
         <li key={b.id} className="card"><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-semibold">{b.resourceName} · {b.requesterName}</h2><BookingStatusBadge status={b.status} /></div>
-          <p className="text-sm text-slate-600">{fmt(b.startAt)} → {fmt(b.endAt)} IST · {b.purpose.replace("_", " ")}{b.priorityScore != null && <> · Priority score {b.priorityScore}</>}</p>
+          <p className="text-sm text-slate-600">{fmt(b.startAt)} → {fmt(b.endAt)} IST · {b.purpose.replace("_", " ")}</p>
+          {b.status === "WAITLISTED" && <p className="mt-1 text-sm font-medium text-indigo-800">Waitlist rank {items.filter((item) => item.status === "WAITLISTED").findIndex((item) => item.id === b.id) + 1} · Priority score {b.priorityScore?.toFixed(2) ?? "Calculating"}. Older requests rank higher; recent use lowers the score.</p>}
           {b.purposeNote && <p className="requester-reason"><strong>Requester’s reason:</strong> {b.purposeNote}</p>}
-          <DecideForm bookingId={b.id} /></li>))}</ul>}
+          {b.status === "REQUESTED" ? <DecideForm bookingId={b.id} /> : b.status !== "WAITLISTED" && <p className="mt-3 text-xs text-slate-500">This request is in a legacy review state and has no decision actions.</p>}</li>))}</ul>}
   </>);
 }

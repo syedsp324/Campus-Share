@@ -7,10 +7,13 @@ CampusShare is a campus resource booking platform. Students can discover shared 
 ## Features
 
 - Browse and search active campus resources by category.
+- Preview active listings before signing in; resource requests still require an account.
 - Request bookings with a purpose, reason, and duration. Custom durations can be entered in 15-minute increments, within each resource's limit.
 - Sign in with the shared User or Owner demo account. New account registration is disabled.
 - View and manage your bookings.
 - Let resource owners create and update listings, set maximum booking durations, and approve, waitlist, or decline requests.
+- Promote the highest-ranked eligible waitlist request automatically when an upcoming approved booking is cancelled.
+- Explain waitlist order with a score based on time waiting, adjusted for the requester's recent use of that resource.
 - Record condition reports during check-in and return.
 - Enforce authentication, role permissions, booking limits, and availability checks through Supabase and server-side actions.
 
@@ -19,6 +22,7 @@ CampusShare is a campus resource booking platform. Students can discover shared 
 - Next.js 16 with React 19 and TypeScript
 - Tailwind CSS 4
 - Supabase Auth and PostgreSQL
+- pgTAP database tests and Playwright browser tests
 
 ## Getting started
 
@@ -57,8 +61,10 @@ In the Supabase SQL Editor, run the SQL files in `supabase/migrations` in filena
 4. `202610290003_checkin_return.sql`
 5. `202610290004_booking_reads.sql`
 6. `202610290005_resources_select_grant.sql`
+7. `202610300001_public_resource_discovery.sql`
+8. `202610300002_waitlist_promotion_priority.sql`
 
-These migrations create the tables, access policies, and booking functions used by the app.
+These migrations create the tables, access policies, and booking functions used by the app. If your project already has migrations 1–6, run migrations 7 and 8 in order; do not rerun earlier files.
 
 ### 4. Configure Supabase Auth
 
@@ -99,7 +105,44 @@ npm run lint      # Run ESLint
 npx tsc --noEmit  # Check TypeScript types
 npm run build     # Create a production build
 npm start         # Start the production server after building
+npm run test:e2e  # Run the Playwright sign-in journey checks
+supabase test db  # Run pgTAP database tests against local Supabase
 ```
+
+The database test command needs the Supabase CLI, a local Supabase stack, and the project's local CLI config. If `supabase/config.toml` is missing, run `supabase init` once, then `supabase start`. Do not point database tests at the deployed project.
+
+## Architecture and booking states
+
+The browser submits user actions to Next.js server actions. Those actions call PostgreSQL functions in Supabase; the functions validate roles, quotas, allowed state changes, and resource availability, then write booking and audit rows in one transaction. PostgreSQL's exclusion constraint is the final guard against overlapping approved bookings.
+
+```mermaid
+stateDiagram-v2
+    [*] --> REQUESTED
+    REQUESTED --> APPROVED: owner approves
+    REQUESTED --> WAITLISTED: owner waitlists
+    REQUESTED --> REJECTED: owner rejects
+    REQUESTED --> CANCELLED: requester cancels
+    WAITLISTED --> APPROVED: eligible slot released
+    WAITLISTED --> CANCELLED: requester cancels
+    APPROVED --> CHECKED_IN: requester checks out
+    APPROVED --> CANCELLED: requester cancels before start
+    CHECKED_IN --> RETURNED: item returned
+```
+
+Waitlist promotion currently runs inside the cancellation database function, so releasing the slot and promoting the next eligible request commit together. The score is waiting days minus two points for each completed use of the same resource in the past 30 days. Ties go to the earlier request. Purpose is displayed to owners but is not used to rank people. `CLOSED`, `OVERDUE`, `DISPUTED`, `VERIFYING`, and `PENDING_REVIEW` are representable in the database and included in reviewer fixtures, but the app currently has no transitions into those states.
+
+## Reviewer demo data
+
+`supabase/seeds/reviewer_demo_bookings.sql` prepares example bookings for the pre-provisioned demo student and owner, covering requests, review, waitlist, active, completed, rejected, cancelled, overdue, and disputed pages. It is an optional data script, not a migration. It replaces only its own fixed fixture IDs and requires an active resource owned by the demo owner. Review the SQL and run it manually in the intended demo Supabase project's SQL Editor after migrations 1–8. It does not create demo accounts or alter other bookings. To remove the fixtures, delete those fixed-ID rows from `audit_events`, `condition_reports`, and `bookings` in that order.
+
+## Tests and current results
+
+- Database tests in `supabase/tests/database/booking_workflow_test.sql` cover overlapping approvals, active-booking quota enforcement, invalid return transitions, and transactional waitlist promotion/score ordering.
+- Playwright checks in `tests/e2e/sign-in.spec.ts` cover the User and Owner demo sign-in tabs and confirm sign-up routes back to sign-in.
+- Latest local checks: `npx tsc --noEmit` passed and `npm run lint` passed.
+- Playwright tests are added but not verified in this environment: the browser runner could not access the local server socket. Run `npm run test:e2e` on a machine where Playwright can reach the local app; the sign-in checks use the configured demo accounts and do not create bookings.
+- The pgTAP tests are added but not yet run: the Supabase CLI/local database stack is unavailable in this environment. Start a local Supabase stack, then run `supabase test db`; do not run the test suite against the deployed database.
+- Reviewer fixtures are separate from tests and are inserted only when the optional seed SQL is manually run.
 
 ## Project structure
 
@@ -110,6 +153,9 @@ components/          Booking, resource, and account UI
 lib/supabase/        Supabase browser and server clients
 src/types/           Shared TypeScript types
 supabase/migrations/ Database schema, policies, and functions
+supabase/tests/     pgTAP database tests
+supabase/seeds/     Optional reviewer demo data
+tests/e2e/          Playwright browser tests
 public/              Static images and other public assets
 ```
 
@@ -125,4 +171,4 @@ Role checks in the interface are for navigation and usability; the server action
 
 - Booking times are entered in India Standard Time (IST).
 - Booking duration, weekly usage, active booking, and availability limits are checked when a request is submitted.
-- No test script is currently defined in `package.json`.
+- Demo credentials are shared evaluation accounts, provisioned for this project only; never use real user passwords or production credentials in the repository.

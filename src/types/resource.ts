@@ -4,7 +4,7 @@ export type ResourceCategory = "LAB" | "MAKERSPACE_TOOL" | "CAMERA" | "COMPUTER"
 
 export interface ResourceSummary {
   id: UUID;
-  ownerId: UUID;
+  ownerId: UUID | null;
   name: string;
   category: ResourceCategory;
   description: string | null;

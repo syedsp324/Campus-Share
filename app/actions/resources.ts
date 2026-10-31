@@ -1,8 +1,6 @@
 
 "use server";
 
-"use server";
-
 import { createClient } from "../../lib/supabase/server";
 import type { ActionResult, UserRole } from "../../src/types/common";
 import type {
@@ -32,7 +30,7 @@ type DbResource = {
 };
 
 function toSummary(
-  resource: DbResource,
+  resource: Pick<DbResource, "id" | "name" | "category" | "description" | "location" | "photo_url" | "is_high_demand" | "is_active"> & { owner_id: string | null },
   ownerName: string,
 ): ResourceSummary {
   return {
@@ -70,7 +68,7 @@ async function getActor() {
     await supabase.auth.getUser();
 
   if (authError || !authData.user) {
-    return { error: "UNAUTHENTICATED" as const };
+    return { supabase, error: "UNAUTHENTICATED" as const };
   }
 
   const { data: profile, error } = await supabase
@@ -79,8 +77,8 @@ async function getActor() {
     .eq("id", authData.user.id)
     .maybeSingle();
 
-  if (error) return { error: "INTERNAL_ERROR" as const };
-  if (!profile) return { error: "FORBIDDEN" as const };
+  if (error) return { supabase, error: "INTERNAL_ERROR" as const };
+  if (!profile) return { supabase, error: "FORBIDDEN" as const };
 
   return {
     supabase,
@@ -112,7 +110,14 @@ async function listResourceRows(
   filters: ResourceFilters,
   includeInactive: boolean,
 ): Promise<ActionResult<ResourceSummary[]>> {
+  // The resource directory is public so people can evaluate listings before
+  // creating an account. Anonymous queries only receive listing information;
+  // booking limits, deposits, and owner identity stay behind authentication.
   const actor = await getActor();
+
+  if ("error" in actor && actor.error === "UNAUTHENTICATED" && !includeInactive) {
+    return listPublicResourceRows(actor.supabase, filters);
+  }
 
   if ("error" in actor && actor.error) {
     return failure(actor.error, "Unable to access resources.");
@@ -177,10 +182,64 @@ async function listResourceRows(
   };
 }
 
+async function listPublicResourceRows(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  filters: ResourceFilters,
+): Promise<ActionResult<ResourceSummary[]>> {
+  let query = supabase
+    .from("resources")
+    .select("id, name, category, description, location, photo_url, is_high_demand, is_active")
+    .eq("is_active", true)
+    .order("name");
+
+  if (filters.category) query = query.eq("category", filters.category);
+  if (filters.location) query = query.ilike("location", `%${filters.location.trim()}%`);
+  if (filters.query) {
+    const search = filters.query.trim().replace(/[,%()]/g, "");
+    if (search) query = query.ilike("name", `%${search}%`);
+  }
+
+  const { data, error } = await query;
+  if (error) return failure("INTERNAL_ERROR", "Unable to load resources.");
+
+  return {
+    ok: true,
+    data: (data ?? []).map((resource) => toSummary(
+      { ...resource, owner_id: null },
+      "Campus resource owner",
+    )),
+  };
+}
+
 export async function getResource(
   resourceId: string,
 ): Promise<ActionResult<ResourceDetail>> {
   const actor = await getActor();
+  if ("error" in actor && actor.error === "UNAUTHENTICATED") {
+    const { data, error } = await actor.supabase
+      .from("resources")
+      .select("id, name, category, description, location, photo_url, usage_rules, requires_staff_present, is_high_demand, is_active, max_booking_length_hours")
+      .eq("id", resourceId)
+      .eq("is_active", true)
+      .maybeSingle();
+
+    if (error) return failure("INTERNAL_ERROR", "Unable to load resource.");
+    if (!data) return failure("NOT_FOUND", "Resource not found.");
+
+    return {
+      ok: true,
+      data: {
+        ...toSummary({ ...data, owner_id: null }, "Campus resource owner"),
+        usageRules: data.usage_rules,
+        requiresStaffPresent: data.requires_staff_present,
+        // These booking-only values are hidden in the signed-out view.
+        depositAmount: 0,
+        maxHoursPerUserPerWeek: 0,
+        maxActiveBookingsPerUser: 0,
+        maxBookingLengthHours: data.max_booking_length_hours,
+      },
+    };
+  }
 
   if ("error" in actor && actor.error) {
     return failure(actor.error, "Unable to access resources.");
